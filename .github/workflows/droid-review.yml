@@ -35,7 +35,7 @@ jobs:
 
   droid-review:
     needs: assess-depth
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false && github.head_ref != 'test/droid-local-positive' && github.head_ref != 'test/droid-local-negative'
     runs-on: ubuntu-latest
     permissions:
       contents: read
