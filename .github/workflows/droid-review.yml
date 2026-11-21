@@ -61,14 +61,14 @@ jobs:
       - name: Apply pinned strict-review overlay
         shell: bash
         env:
-          OVERLAY_B64: ${{ secrets.DROID_STRICT_ACTION_PATCH }}
+          OVERLAY_B64: ${{ secrets.DROID_STRICT_ACTION_PATCH_V2 }}
         run: |
           set -euo pipefail
           umask 077
           overlay=$(mktemp)
           trap 'rm -f "$overlay"' EXIT
           printf '%s' "$OVERLAY_B64" | base64 -d > "$overlay"
-          printf '%s  %s\n' '62568604210d6b89ad22942e2ba605fedc61a794ca239de25279ed59036771a7' "$overlay" | sha256sum -c -
+          printf '%s  %s\n' '07f8798cda3dc22a4782610f48c132a07f2338eaa2ade8576ee91b02767d56cf' "$overlay" | sha256sum -c -
           git -C .github/actions/droid-action apply --check "$overlay"
           git -C .github/actions/droid-action apply "$overlay"
       - name: Disable credential-bearing Droid debug artifacts
@@ -167,14 +167,14 @@ jobs:
       - name: Apply pinned strict-review overlay
         shell: bash
         env:
-          OVERLAY_B64: ${{ secrets.DROID_STRICT_ACTION_PATCH }}
+          OVERLAY_B64: ${{ secrets.DROID_STRICT_ACTION_PATCH_V2 }}
         run: |
           set -euo pipefail
           umask 077
           overlay=$(mktemp)
           trap 'rm -f "$overlay"' EXIT
           printf '%s' "$OVERLAY_B64" | base64 -d > "$overlay"
-          printf '%s  %s\n' '62568604210d6b89ad22942e2ba605fedc61a794ca239de25279ed59036771a7' "$overlay" | sha256sum -c -
+          printf '%s  %s\n' '07f8798cda3dc22a4782610f48c132a07f2338eaa2ade8576ee91b02767d56cf' "$overlay" | sha256sum -c -
           git -C .github/actions/droid-action apply --check "$overlay"
           git -C .github/actions/droid-action apply "$overlay"
       - name: Disable credential-bearing Droid debug artifacts
