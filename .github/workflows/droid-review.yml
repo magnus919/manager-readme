@@ -35,7 +35,7 @@ jobs:
 
   droid-review:
     needs: assess-depth
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,10 +47,77 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
-      - name: Run Droid Auto Review
-        uses: Factory-AI/droid-action@7c7bfea2aa3bb7ea87579402cc1d89dbcf6b13b3
+          persist-credentials: false
+      - name: Checkout pinned Droid action
+        uses: actions/checkout@v5
+        with:
+          repository: Factory-AI/droid-action
+          ref: 33026ce7f52af7bc9b0399914122f1ee7dabdc56
+          path: .github/actions/droid-action
+          persist-credentials: false
+      # This upstream revision adds deterministic publication after validation.
+      # Its built-in debug artifact includes ~/.factory, where Droid resolves
+      # model API keys, so remove the two debug artifact steps fail-closed.
+      - name: Disable credential-bearing Droid debug artifacts
+        shell: bash
+        run: |
+          python3 - "$GITHUB_WORKSPACE/.github/actions/droid-action" <<'PY'
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          action = Path(sys.argv[1])
+          expected = "33026ce7f52af7bc9b0399914122f1ee7dabdc56"
+          actual = subprocess.check_output(
+              ["git", "-C", str(action), "rev-parse", "HEAD"], text=True
+          ).strip()
+          if actual != expected:
+              raise SystemExit(f"Unexpected Droid action revision: {actual}")
+
+          action_file = action / "action.yml"
+          contents = action_file.read_text()
+          collect = "    - name: Collect .factory debug files\n"
+          upload = "    - name: Upload debug artifacts\n"
+          if contents.count(collect) != 1 or contents.count(upload) != 1:
+              raise SystemExit("Droid debug artifact steps changed; refusing to run")
+          collect_at = contents.index(collect)
+          upload_at = contents.index(upload)
+          if upload_at <= collect_at:
+              raise SystemExit("Droid debug artifact steps are out of order")
+          tail = contents[collect_at:]
+          if not tail.rstrip().endswith("retention-days: 7"):
+              raise SystemExit("Droid action changed after its debug artifact steps")
+          safe_contents = contents[:collect_at].rstrip() + "\n"
+          if "name: Post review" not in safe_contents:
+              raise SystemExit("Droid deterministic review publisher is missing")
+          if "name: Update comment with job link" not in safe_contents:
+              raise SystemExit("Droid tracking comment publisher is missing")
+          if "actions/upload-artifact" in safe_contents:
+              raise SystemExit("Unexpected Droid artifact upload step; refusing to run")
+          action_file.write_text(safe_contents)
+          PY
+      - name: Configure local review model
+        shell: bash
+        run: |
+          umask 077
+          mkdir -p "$HOME/.factory"
+          cat > "$HOME/.factory/settings.json" <<'EOF'
+          {"customModels":[{"model":"local","displayName":"LiteLLM-Local","baseUrl":"https://gpuslut.brandyapple.com/v1","apiKey":"${LITELLM_DROID_LOCAL_KEY}","provider":"generic-chat-completion-api","noImageSupport":true}]}
+          EOF
+      - name: Run Droid review
+        uses: ./.github/actions/droid-action
         with:
           factory_api_key: ${{ secrets.FACTORY_API_KEY }}
           automatic_review: true
           review_depth: ${{ needs.assess-depth.outputs.depth }}
+          review_model: custom:LiteLLM-Local-0
+          security_model: custom:LiteLLM-Local-0
           automatic_security_review: ${{ needs.assess-depth.outputs.security }}
+          model_fallback: fail
+          reasoning_effort: none
+        env:
+          LITELLM_DROID_LOCAL_KEY: ${{ secrets.LITELLM_DROID_LOCAL_KEY }}
+      - name: Remove Droid runner state
+        if: always()
+        shell: bash
+        run: rm -rf "$HOME/.factory" "$RUNNER_TEMP/.factory" "$RUNNER_TEMP/droid-prompts"
