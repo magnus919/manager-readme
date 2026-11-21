@@ -109,13 +109,13 @@ jobs:
               raise SystemExit("Unexpected Droid artifact upload step; refusing to run")
           action_file.write_text(safe_contents)
           PY
-      - name: Configure local review model
+      - name: Configure LiteLLM general review model
         shell: bash
         run: |
           umask 077
           mkdir -p "$HOME/.factory"
           cat > "$HOME/.factory/settings.json" <<'EOF'
-          {"customModels":[{"model":"local","displayName":"LiteLLM-Local","baseUrl":"https://gpuslut.brandyapple.com/v1","apiKey":"${LITELLM_DROID_LOCAL_KEY}","provider":"generic-chat-completion-api","noImageSupport":true}]}
+          {"customModels":[{"model":"general","displayName":"LiteLLM-General","baseUrl":"https://gpuslut.brandyapple.com/v1","apiKey":"${LITELLM_DROID_GENERAL_KEY}","provider":"generic-chat-completion-api","noImageSupport":true}]}
           EOF
       - name: Run Droid review
         uses: ./.github/actions/droid-action
@@ -123,13 +123,13 @@ jobs:
           factory_api_key: ${{ secrets.FACTORY_API_KEY }}
           automatic_review: true
           review_depth: ${{ needs.assess-depth.outputs.depth }}
-          review_model: custom:LiteLLM-Local-0
-          security_model: custom:LiteLLM-Local-0
+          review_model: custom:LiteLLM-General-0
+          security_model: custom:LiteLLM-General-0
           automatic_security_review: false
           model_fallback: fail
           reasoning_effort: none
         env:
-          LITELLM_DROID_LOCAL_KEY: ${{ secrets.LITELLM_DROID_LOCAL_KEY }}
+          LITELLM_DROID_GENERAL_KEY: ${{ secrets.LITELLM_DROID_GENERAL_KEY }}
       - name: Remove Droid runner state
         if: always()
         shell: bash
@@ -215,13 +215,13 @@ jobs:
               raise SystemExit("Unexpected Droid artifact upload step; refusing to run")
           action_file.write_text(safe_contents)
           PY
-      - name: Configure local review model
+      - name: Configure LiteLLM general review model
         shell: bash
         run: |
           umask 077
           mkdir -p "$HOME/.factory"
           cat > "$HOME/.factory/settings.json" <<'EOF'
-          {"customModels":[{"model":"local","displayName":"LiteLLM-Local","baseUrl":"https://gpuslut.brandyapple.com/v1","apiKey":"${LITELLM_DROID_LOCAL_KEY}","provider":"generic-chat-completion-api","noImageSupport":true}]}
+          {"customModels":[{"model":"general","displayName":"LiteLLM-General","baseUrl":"https://gpuslut.brandyapple.com/v1","apiKey":"${LITELLM_DROID_GENERAL_KEY}","provider":"generic-chat-completion-api","noImageSupport":true}]}
           EOF
       - name: Run Droid security review
         uses: ./.github/actions/droid-action
@@ -229,13 +229,13 @@ jobs:
           factory_api_key: ${{ secrets.FACTORY_API_KEY }}
           automatic_review: false
           review_depth: deep
-          review_model: custom:LiteLLM-Local-0
-          security_model: custom:LiteLLM-Local-0
+          review_model: custom:LiteLLM-General-0
+          security_model: custom:LiteLLM-General-0
           automatic_security_review: true
           model_fallback: fail
           reasoning_effort: none
         env:
-          LITELLM_DROID_LOCAL_KEY: ${{ secrets.LITELLM_DROID_LOCAL_KEY }}
+          LITELLM_DROID_GENERAL_KEY: ${{ secrets.LITELLM_DROID_GENERAL_KEY }}
       - name: Remove Droid runner state
         if: always()
         shell: bash
