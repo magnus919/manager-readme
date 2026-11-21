@@ -58,6 +58,19 @@ jobs:
       # This upstream revision adds deterministic publication after validation.
       # Its built-in debug artifact includes ~/.factory, where Droid resolves
       # model API keys, so remove the two debug artifact steps fail-closed.
+      - name: Apply pinned strict-review overlay
+        shell: bash
+        env:
+          OVERLAY_B64: ${{ secrets.DROID_STRICT_ACTION_PATCH }}
+        run: |
+          set -euo pipefail
+          umask 077
+          overlay=$(mktemp)
+          trap 'rm -f "$overlay"' EXIT
+          printf '%s' "$OVERLAY_B64" | base64 -d > "$overlay"
+          printf '%s  %s\n' '62568604210d6b89ad22942e2ba605fedc61a794ca239de25279ed59036771a7' "$overlay" | sha256sum -c -
+          git -C .github/actions/droid-action apply --check "$overlay"
+          git -C .github/actions/droid-action apply "$overlay"
       - name: Disable credential-bearing Droid debug artifacts
         shell: bash
         run: |
